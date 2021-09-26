@@ -7,49 +7,25 @@ import { createWsEndpoints } from '.';
 
 interface Endpoint {
   name: string;
-  ws: string;
+  value: string;
 }
 
-interface LightClientEndpoint {
-  name: string;
-  param: string;
-}
-
-const allEndpoints = createWsEndpoints((k: string, v?: string) => v || k);
+const allEndpoints = createWsEndpoints((k: string, v?: string) => v || k, false, false);
 
 describe('WS urls are all valid', (): void => {
   allEndpoints
     .filter(({ value }) =>
       value &&
       isString(value) &&
-      !value.includes('127.0.0.1') &&
-      !value.includes('substrate-connect')
+      !value.includes('127.0.0.1')
     )
     .map(({ text, value }): Endpoint => ({
       name: text as string,
-      ws: value
+      value
     }))
-    .forEach(({ name, ws }) =>
-      it(`${name} @ ${ws}`, (): void => {
-        assert(ws.startsWith('wss://'), `${name} @ ${ws} should start with wss://`);
-      })
-    );
-});
-
-describe('light client urls are all valid', (): void => {
-  allEndpoints
-    .filter(({ value }) =>
-      value &&
-      isString(value) &&
-      value.includes('substrate-connect')
-    )
-    .map(({ text, value }): LightClientEndpoint => ({
-      name: text as string,
-      param: value
-    }))
-    .forEach(({ name, param }) =>
-      it(`${name} @ ${param}`, (): void => {
-        assert(param.substr(param.indexOf('-')) === '-substrate-connect', `${name} @ ${param} should end with '-substrate-connect'`);
+    .forEach(({ name, value }) =>
+      it(`${name} @ ${value}`, (): void => {
+        assert(value.startsWith('wss://') || value.startsWith('light://substrate-connect/'), `${name} @ ${value} should start with wss:// or light://`);
       })
     );
 });
@@ -57,10 +33,10 @@ describe('light client urls are all valid', (): void => {
 describe('urls are sorted', (): void => {
   let hasDevelopment = false;
   let lastHeader = '';
-  const filtered = allEndpoints.filter(({ isHeader, isUnreachable, text }): boolean => {
+  const filtered = allEndpoints.filter(({ isHeader, text }): boolean => {
     hasDevelopment = hasDevelopment || (!!isHeader && text === 'Development');
 
-    return !isUnreachable && !hasDevelopment;
+    return !hasDevelopment;
   });
 
   filtered.forEach(({ isHeader, text }, index): void => {
